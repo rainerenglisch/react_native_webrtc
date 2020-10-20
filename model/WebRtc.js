@@ -18,7 +18,7 @@ class WebRtc {
     });
   };
 
-  static getUserMedia = (mediaDevices) => {
+  static getUserMedia = () => {
     let isFront = false;
 
     return mediaDevices.enumerateDevices().then(sourceInfos => {

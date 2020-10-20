@@ -10,16 +10,7 @@ import {useFocusEffect} from '@react-navigation/native';
 
 import InCallManager from 'react-native-incall-manager';
 
-import {
-  RTCPeerConnection,
-  RTCIceCandidate,
-  RTCSessionDescription,
-  RTCView,
-  MediaStream,
-  MediaStreamTrack,
-  mediaDevices,
-  registerGlobals,
-} from 'react-native-webrtc';
+import {RTCView} from 'react-native-webrtc';
 
 export default function CallScreen({navigation, ...props}) {
   let name;
@@ -114,7 +105,7 @@ export default function CallScreen({navigation, ...props}) {
   useEffect(() => {
     WebRtc.registerPeerConnectionListeners(yourConn);
 
-    WebRtc.getUserMedia(mediaDevices)
+    WebRtc.getUserMedia()
       .then(stream => {
         // Got stream!
         console.log('2Update Local Stream1 ' + localStream.toURL());
