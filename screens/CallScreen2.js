@@ -55,7 +55,7 @@ export default function CallScreen({navigation, ...props}) {
       FirebaseSignaling.singleton.addCallerCandidate(event.candidate);
     };
 */
-    WebRtc.registerPeerConnectionCallbacks(yourConn);
+    WebRtc.registerSignalingCallbacks(yourConn);
     WebRtc.registerPeerConnectionListeners(yourConn);
     // Code for collecting ICE candidates above
 

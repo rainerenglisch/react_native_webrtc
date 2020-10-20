@@ -58,7 +58,7 @@ class WebRtc {
    *
    * @param yourConn
    */
-  static registerPeerConnectionCallbacks = yourConn => {
+  static registerSignalingCallbacks = yourConn => {
     yourConn.onicecandidate = event => {
       if (!event.candidate) {
         console.log('Got final candidate!');

@@ -1,4 +1,4 @@
-import firebase from 'firebase';
+import WebRtc from '../model/WebRtc';
 import React, {useEffect, useState, useCallback} from 'react';
 import {View, StyleSheet, Alert} from 'react-native';
 import {Text} from 'react-native-paper';
@@ -20,7 +20,6 @@ import {
   mediaDevices,
   registerGlobals,
 } from 'react-native-webrtc';
-import WebRtc from "../model/WebRtc";
 
 export default function CallScreen({navigation, ...props}) {
   let name;
@@ -28,23 +27,11 @@ export default function CallScreen({navigation, ...props}) {
   const [userId, setUserId] = useState('');
   const [socketActive, setSocketActive] = useState(false);
   const [calling, setCalling] = useState(false);
+  const [callToUsername, setCallToUsername] = useState(null);
 
   const [localStream, setLocalStream] = useState({toURL: () => null});
   const [remoteStream, setRemoteStream] = useState({toURL: () => null});
-
-  const [yourConn, setYourConn] = useState(
-    //change the config as you need
-    new RTCPeerConnection({
-      iceServers: [
-        {urls: 'stun:stun.l.google.com:19302',},
-        {urls: 'stun:stun1.l.google.com:19302',},
-        {urls: 'stun:stun2.l.google.com:19302',},
-      ],
-      iceCandidatePoolSize: 10,
-    }),
-  );
-
-  const [callToUsername, setCallToUsername] = useState(null);
+  const [yourConn, setYourConn] = useState(WebRtc.createPeerConnection);
 
   /**
    * Creates a room, sets up local stream incl all callbacks for signaling, creates offer
@@ -55,7 +42,7 @@ export default function CallScreen({navigation, ...props}) {
     // document.querySelector('#createBtn').disabled = true;
     // document.querySelector('#joinBtn').disabled = true;
     console.log('register signal server callbacks');
-    WebRtc.registerPeerConnectionCallbacks(yourConn);
+    WebRtc.registerSignalingCallbacks(yourConn);
     // document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
     yourConn.onaddstream = event => {
       console.log('On Add Stream', event);
@@ -115,10 +102,10 @@ export default function CallScreen({navigation, ...props}) {
 
       console.log(InCallManager);
 
-      send({
+/*      send({
         type: 'login',
         name: userId,
-      });
+      });*/
     }
   }, [socketActive, userId]);
 
