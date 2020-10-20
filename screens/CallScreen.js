@@ -6,7 +6,6 @@ import {Button} from 'react-native-paper';
 import AsyncStorage from '@react-native-community/async-storage';
 import {TextInput} from 'react-native-paper';
 import Fire from '../backend/Fire.js';
-
 import {useFocusEffect} from '@react-navigation/native';
 
 import InCallManager from 'react-native-incall-manager';
@@ -28,7 +27,7 @@ export default function CallScreen({navigation, ...props}) {
   const [userId, setUserId] = useState('');
   const [socketActive, setSocketActive] = useState(false);
   const [calling, setCalling] = useState(false);
-  // Video Scrs
+
   const [localStream, setLocalStream] = useState({toURL: () => null});
   const [remoteStream, setRemoteStream] = useState({toURL: () => null});
 
@@ -44,7 +43,6 @@ export default function CallScreen({navigation, ...props}) {
     }),
   );
 
-  const [offer, setOffer] = useState(null);
   const [callToUsername, setCallToUsername] = useState(null);
 
   /**
@@ -55,28 +53,19 @@ export default function CallScreen({navigation, ...props}) {
   async function createRoom() {
     // document.querySelector('#createBtn').disabled = true;
     // document.querySelector('#joinBtn').disabled = true;
-
-    // console.log('Create PeerConnection with configuration: ', configuration);
-    // connection = new RTCPeerConnection(configuration);
-
-    registerPeerConnectionListeners();
-
-    localStream.getTracks().forEach(track => {
-      console.log('Should add tracks to connection');
-      // yourConn.addTrack(track, localStream);
-    });
-
-    const db = firebase.firestore();
-    const roomRef = await db.collection('rooms').doc();
-    // Code for collecting ICE candidates below
-    const callerCandidatesCollection = roomRef.collection('callerCandidates');
+    console.log('create room & register signal server callbacks');
+    // const db = firebase.firestore();
+    // const roomRef = await db.collection('rooms').doc();
+    // // Code for collecting ICE candidates below
+    // const callerCandidatesCollection = roomRef.collection('callerCandidates');
     yourConn.onicecandidate = event => {
       if (!event.candidate) {
         console.log('Got final candidate!');
         return;
       }
       console.log('Got candidate: ', event.candidate);
-      callerCandidatesCollection.add(event.candidate.toJSON());
+      Fire.shared.addCallerCandidate(event.candidate.toJSON());
+      // callerCandidatesCollection.add(event.candidate.toJSON());
     };
     // Code for collecting ICE candidates above
 
@@ -85,16 +74,15 @@ export default function CallScreen({navigation, ...props}) {
     await yourConn.setLocalDescription(offer);
     console.log('Created offer:', offer);
 
-    const roomWithOffer = {
+/*    const roomWithOffer = {
       'offer': {
         type: offer.type,
         sdp: offer.sdp,
       },
     };
-    await roomRef.set(roomWithOffer);
-    // const roomId = roomRef.id;
-    // setRoomId(roomRef.id);
-    console.log(`New room created with SDP offer. Room ID: ${roomRef.id}`);
+    await roomRef.set(roomWithOffer);*/
+    await Fire.shared.sendOffer(offer);
+
     // document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
     // Code for creating a room above
     yourConn.onaddstream = event => {
@@ -103,7 +91,7 @@ export default function CallScreen({navigation, ...props}) {
     };
 
     // Listening for remote session description below
-    roomRef.onSnapshot(async snapshot => {
+    Fire.shared.getRoomRef().onSnapshot(async snapshot => {
       const data = snapshot.data();
       if (!yourConn.currentRemoteDescription && data && data.answer) {
         console.log('Got remote description: ', data.answer);
@@ -114,7 +102,7 @@ export default function CallScreen({navigation, ...props}) {
     // Listening for remote session description above
 
     // Listen for remote ICE candidates below
-    roomRef.collection('calleeCandidates').onSnapshot(snapshot => {
+    Fire.shared.getCalleeCandidates().onSnapshot(snapshot => {
       snapshot.docChanges().forEach(async change => {
         if (change.type === 'added') {
           let data = change.doc.data();
@@ -127,20 +115,20 @@ export default function CallScreen({navigation, ...props}) {
   }
 
   function registerPeerConnectionListeners() {
-    yourConn.addEventListener('icegatheringstatechange', () => {
+    yourConn.onicegatheringstatechange = () => {
       console.log(`ICE gathering state changed: ${yourConn.iceGatheringState}`);
-    });
-    yourConn.addEventListener('connectionstatechange', () => {
+    };
+    yourConn.onconnectionstatechange = () => {
       console.log(`Connection state change: ${yourConn.connectionState}`);
-    });
-    yourConn.addEventListener('signalingstatechange', () => {
+    };
+    yourConn.onsignalingstatechange = () => {
       console.log(`Signaling state change: ${yourConn.signalingState}`);
-    });
-    yourConn.addEventListener('iceconnectionstatechange ', () => {
+    };
+    yourConn.oniceconnectionstatechange = () => {
       console.log(
         `ICE connection state change: ${yourConn.iceConnectionState}`,
       );
-    });
+    };
   }
 
   useFocusEffect(
@@ -200,15 +188,7 @@ export default function CallScreen({navigation, ...props}) {
   const onLogin = () => {};
 
   useEffect(() => {
-    /**
-     *
-     * Sockets Signalling
-     */
-    console.log('register signal server callbacks');
-    // Signaling callbacks go here. already done in createRoom
-    /**
-     * Socjket Signalling Ends
-     */
+    registerPeerConnectionListeners();
 
     let isFront = false;
     mediaDevices.enumerateDevices().then(sourceInfos => {
@@ -249,7 +229,6 @@ export default function CallScreen({navigation, ...props}) {
           console.log(error);
         });
     });
-
   }, []);
 
   const send = message => {
@@ -257,9 +236,8 @@ export default function CallScreen({navigation, ...props}) {
     //attach the other peer username to our messages
     if (connectedUser) {
       message.name = connectedUser;
-      console.log('Connected iser in end----------', message);
+      console.log('Connected user in end----------', message);
     }
-
     // conn.send(JSON.stringify(message));
   };
 
@@ -318,8 +296,8 @@ export default function CallScreen({navigation, ...props}) {
           mode="contained"
           onPress={onCall}
           loading={calling}
-          //   style={styles.btn}
-        //  disabled={!(socketActive && userId.length > 0)}
+          // style={styles.btn}
+          // disabled={!(socketActive && userId.length > 0)}
           contentStyle={styles.btnContent}>
           Call
         </Button>
