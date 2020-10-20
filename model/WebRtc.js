@@ -21,7 +21,7 @@ class WebRtc {
   static getUserMedia = (mediaDevices) => {
     let isFront = false;
 
-    mediaDevices.enumerateDevices().then(sourceInfos => {
+    return mediaDevices.enumerateDevices().then(sourceInfos => {
       let videoSourceId;
       for (let i = 0; i < sourceInfos.length; i++) {
         const sourceInfo = sourceInfos[i];

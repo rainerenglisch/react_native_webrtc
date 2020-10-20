@@ -127,56 +127,20 @@ export default function CallScreen({navigation, ...props}) {
   useEffect(() => {
     WebRtc.registerPeerConnectionListeners(yourConn);
 
-    let isFront = false;
-    mediaDevices.enumerateDevices().then(sourceInfos => {
-      let videoSourceId;
-      for (let i = 0; i < sourceInfos.length; i++) {
-        const sourceInfo = sourceInfos[i];
-        if (
-          sourceInfo.kind === 'videoinput' &&
-          sourceInfo.facing === (isFront ? 'front' : 'environment')
-        ) {
-          videoSourceId = sourceInfo.deviceId;
-        }
-      }
-      mediaDevices
-        .getUserMedia({
-          audio: true,
-          video: {
-            mandatory: {
-              minWidth: 500, // Provide your own width, height and frame rate here
-              minHeight: 300,
-              minFrameRate: 30,
-            },
-            facingMode: isFront ? 'user' : 'environment',
-            optional: videoSourceId ? [{sourceId: videoSourceId}] : [],
-          },
-        })
-        .then(stream => {
-          // Got stream!
-          console.log('Update Local Stream1 ' + localStream.toURL());
-          setLocalStream(stream);
-          console.log('Update Local Stream2 ' + localStream.toURL());
-
-          // setup stream listening
-          yourConn.addStream(stream);
-        })
-        .catch(error => {
-          console.log('error');
-          console.log(error);
-        });
-    });
+    WebRtc.getUserMedia(mediaDevices)
+      .then(stream => {
+        // Got stream!
+        console.log('2Update Local Stream1 ' + localStream.toURL());
+        setLocalStream(stream);
+        console.log('2Update Local Stream2 ' + localStream.toURL());
+        // setup stream listening
+        yourConn.addStream(stream);
+      })
+      .catch(error => {
+        console.log('error');
+        console.log(error);
+      });
   }, []);
-
-  const send = message => {
-    console.log('send');
-    //attach the other peer username to our messages
-    if (connectedUser) {
-      message.name = connectedUser;
-      console.log('Connected user in end----------', message);
-    }
-    // conn.send(JSON.stringify(message));
-  };
 
   const onCall = () => {
     console.log('oncall');
@@ -193,7 +157,7 @@ export default function CallScreen({navigation, ...props}) {
   //hang up
   const hangUp = () => {
     console.log('hangUp');
-    send({type: 'leave',});
+    // send({type: 'leave',});
     handleLeave();
   };
 
