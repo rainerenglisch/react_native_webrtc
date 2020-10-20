@@ -32,14 +32,6 @@ export default function CallScreen({navigation, ...props}) {
   async function sendOffer() {
     // document.querySelector('#createBtn').disabled = true;
     // document.querySelector('#joinBtn').disabled = true;
-    console.log('register signal server callbacks');
-    WebRtc.registerSignalingCallbacks(yourConn);
-    // document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
-    yourConn.onaddstream = event => {
-      console.log('On Add Stream', event);
-      setRemoteStream(event.stream);
-    };
-
     const offer = await yourConn.createOffer();
     await yourConn.setLocalDescription(offer);
     console.log('Created offer:', offer);
@@ -92,11 +84,7 @@ export default function CallScreen({navigation, ...props}) {
       }
 
       console.log(InCallManager);
-
-/*      send({
-        type: 'login',
-        name: userId,
-      });*/
+      /* send({ type: 'login', name: userId, });*/
     }
   }, [socketActive, userId]);
 
@@ -118,13 +106,19 @@ export default function CallScreen({navigation, ...props}) {
         console.log('error');
         console.log(error);
       });
+
+    console.log('register signal server callbacks');
+    WebRtc.registerSignalingCallbacks(yourConn);
+    // document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
+    yourConn.onaddstream = event => {
+      console.log('On Add Stream', event);
+      setRemoteStream(event.stream);
+    };
   }, []);
 
   const onCall = () => {
     console.log('oncall');
-
     setCalling(true);
-
     connectedUser = callToUsername;
     console.log('Caling to', callToUsername);
     // create an offer

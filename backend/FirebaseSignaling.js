@@ -27,6 +27,8 @@ class FirebaseSignaling {
 
   initRoom = async () => {
     this.roomRef = await this.db.collection('rooms').doc();
+    // a first message is needed to actually create a room.
+    this.roomRef.set({message: 'Room Created'});
   };
 
   addCallerCandidate = candidate => {
