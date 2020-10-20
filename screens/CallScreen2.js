@@ -20,7 +20,7 @@ import {
   mediaDevices,
   registerGlobals,
 } from 'react-native-webrtc';
-import WebRtc from "../model/WebRtc";
+import WebRtc from '../model/WebRtc';
 
 export default function CallScreen({navigation, ...props}) {
   let name;
@@ -28,44 +28,72 @@ export default function CallScreen({navigation, ...props}) {
   const [userId, setUserId] = useState('');
   const [socketActive, setSocketActive] = useState(false);
   const [calling, setCalling] = useState(false);
+  const [callToUsername, setCallToUsername] = useState(null);
 
   const [localStream, setLocalStream] = useState({toURL: () => null});
   const [remoteStream, setRemoteStream] = useState({toURL: () => null});
-
-  const [yourConn, setYourConn] = useState(
-    //change the config as you need
-    new RTCPeerConnection({
-      iceServers: [
-        {urls: 'stun:stun.l.google.com:19302',},
-        {urls: 'stun:stun1.l.google.com:19302',},
-        {urls: 'stun:stun2.l.google.com:19302',},
-      ],
-      iceCandidatePoolSize: 10,
-    }),
-  );
-
-  const [callToUsername, setCallToUsername] = useState(null);
+  const [yourConn, setYourConn] = useState(WebRtc.createPeerConnection());
 
   /**
    * Creates a room, sets up local stream incl all callbacks for signaling, creates offer
    *
    * @returns {Promise<void>}
    */
-  async function sendOffer() {
+  async function createRoom() {
     // document.querySelector('#createBtn').disabled = true;
     // document.querySelector('#joinBtn').disabled = true;
-    console.log('register signal server callbacks');
+    console.log('create room & register signal server callbacks');
+
+
+/*
+    yourConn.onicecandidate = event => {
+      if (!event.candidate) {
+        console.log('Got final candidate!');
+        return;
+      }
+      console.log('Got candidate: ', event.candidate);
+      FirebaseSignaling.singleton.addCallerCandidate(event.candidate);
+    };
+*/
     WebRtc.registerPeerConnectionCallbacks(yourConn);
+    WebRtc.registerPeerConnectionListeners(yourConn);
+    // Code for collecting ICE candidates above
+
+    // Code for creating a room below
+    const offer = await yourConn.createOffer();
+    await yourConn.setLocalDescription(offer);
+    console.log('Created offer:', offer);
+    await FirebaseSignaling.singleton.sendOffer(offer);
+
     // document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
+    // Code for creating a room above
     yourConn.onaddstream = event => {
       console.log('On Add Stream', event);
       setRemoteStream(event.stream);
     };
 
-    const offer = await yourConn.createOffer();
-    await yourConn.setLocalDescription(offer);
-    console.log('Created offer:', offer);
-    await FirebaseSignaling.singleton.sendOffer(offer);
+/*    // Listening for remote session description below
+    FirebaseSignaling.singleton.getRoomRef().onSnapshot(async snapshot => {
+      const data = snapshot.data();
+      if (!yourConn.currentRemoteDescription && data && data.answer) {
+        console.log('Got remote description: ', data.answer);
+        const rtcSessionDescription = new RTCSessionDescription(data.answer);
+        await yourConn.setRemoteDescription(rtcSessionDescription);
+      }
+    });
+    // Listening for remote session description above
+
+    // Listen for remote ICE candidates below
+    FirebaseSignaling.singleton.getCalleeCandidates().onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(async change => {
+        if (change.type === 'added') {
+          let data = change.doc.data();
+          console.log(`Got new remote ICE candidate: ${JSON.stringify(data)}`);
+          await yourConn.addIceCandidate(new RTCIceCandidate(data));
+        }
+      });
+    });*/
+    // Listen for remote ICE candidates above
   }
 
   useFocusEffect(
@@ -125,16 +153,14 @@ export default function CallScreen({navigation, ...props}) {
   const onLogin = () => {};
 
   useEffect(() => {
-    WebRtc.registerPeerConnectionListeners(yourConn);
-
     let isFront = false;
     mediaDevices.enumerateDevices().then(sourceInfos => {
       let videoSourceId;
       for (let i = 0; i < sourceInfos.length; i++) {
         const sourceInfo = sourceInfos[i];
         if (
-          sourceInfo.kind === 'videoinput' &&
-          sourceInfo.facing === (isFront ? 'front' : 'environment')
+          sourceInfo.kind == 'videoinput' &&
+          sourceInfo.facing == (isFront ? 'front' : 'environment')
         ) {
           videoSourceId = sourceInfo.deviceId;
         }
@@ -162,21 +188,30 @@ export default function CallScreen({navigation, ...props}) {
           yourConn.addStream(stream);
         })
         .catch(error => {
-          console.log('error');
+          console.log("error");
           console.log(error);
         });
     });
-  }, []);
 
-  const send = message => {
-    console.log('send');
-    //attach the other peer username to our messages
-    if (connectedUser) {
-      message.name = connectedUser;
-      console.log('Connected user in end----------', message);
-    }
-    // conn.send(JSON.stringify(message));
-  };
+    /*
+        console.log(WebRtc.getUserMedia(mediaDevices));
+        console.log("mediadevices" + mediaDevices);
+    */
+    /*    WebRtc.getUserMedia(mediaDevices)
+          .then(stream => {
+            // Got stream!
+            console.log('Update Local Stream1 ' + localStream.toURL());
+            setLocalStream(stream);
+            console.log('Update Local Stream2 ' + localStream.toURL());
+            // setup stream listening
+            yourConn.addStream(stream);
+          })
+          .catch(error => {
+            console.log('error');
+            console.log(error);
+          });*/
+      }, []);
+  //});
 
   const onCall = () => {
     console.log('oncall');
@@ -186,14 +221,14 @@ export default function CallScreen({navigation, ...props}) {
     connectedUser = callToUsername;
     console.log('Caling to', callToUsername);
     // create an offer
-    sendOffer();
+    createRoom();
     // console.log('Sending Ofer');
   };
 
   //hang up
   const hangUp = () => {
     console.log('hangUp');
-    send({type: 'leave',});
+    //send({type: 'leave',});
     handleLeave();
   };
 

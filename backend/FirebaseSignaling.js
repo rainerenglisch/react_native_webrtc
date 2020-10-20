@@ -1,6 +1,6 @@
 import firebase from 'firebase';
 
-class Fire {
+class FirebaseSignaling {
   db: firebase.firestore.Firestore;
   // roomRef: awaited DocumentReference<T>;
   roomRef;
@@ -32,7 +32,7 @@ class Fire {
   addCallerCandidate = candidate => {
     // Code for collecting ICE candidates below
     const callerCandidatesCollection = this.roomRef.collection('callerCandidates');
-    callerCandidatesCollection.add(candidate).then(r => console.log('caller candidate added'));
+    callerCandidatesCollection.add(candidate.toJSON()).then(r => console.log('caller candidate added'));
   };
 
   async sendOffer(offer) {
@@ -121,10 +121,10 @@ class Fire {
   append = message => this.ref.push(message);
 }
 
-Fire.shared = new Fire();
-Fire.shared
+FirebaseSignaling.singleton = new FirebaseSignaling();
+FirebaseSignaling.singleton
   .initRoom()
   .then(r =>
-    console.log(`successfully created new room ${Fire.shared.getRoomRef().id}`),
+    console.log(`successfully created new room ${FirebaseSignaling.singleton.getRoomRef().id}`),
   );
-export default Fire;
+export default FirebaseSignaling;
